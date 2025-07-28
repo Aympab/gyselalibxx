@@ -14,7 +14,12 @@ enum class BCond { PERIODIC, DIRICHLET };
  * A simple class which provides the possibility to evaluate
  * an interpolation of a function known only over a restricted set of nodes.
  */
-template <class Execspace, class GridInterp, BCond BcMin, BCond BcMax>
+template <
+        class Execspace,
+        class GridInterp,
+        BCond BcMin,
+        BCond BcMax,
+        class Layout = Kokkos::layout_right>
 class Lagrange
 {
     static_assert((BcMin == BCond::PERIODIC) == (BcMax == BCond::PERIODIC));
@@ -27,7 +32,7 @@ class Lagrange
 private:
     IdxRangeInterp m_idx_range;
     IdxRangeInterp m_inner_idx_range;
-    Field<double, IdxRangeInterp, typename Execspace::memory_space> m_lagrange_coeffs;
+    Field<double, IdxRangeInterp, typename Execspace::memory_space, Layout> m_lagrange_coeffs;
     CoordDimI m_left_bound;
     CoordDimI m_right_bound;
     IdxStepInterp m_poly_support;
@@ -43,7 +48,7 @@ public:
      */
     KOKKOS_FUNCTION Lagrange(
             int degree,
-            Field<double, IdxRangeInterp, typename Execspace::memory_space> x_nodes_fnodes,
+            Field<double, IdxRangeInterp, typename Execspace::memory_space, Layout> x_nodes_fnodes,
             IdxRangeInterp idx_range,
             IdxStepInterp ghost)
         : m_idx_range(idx_range)
@@ -80,8 +85,9 @@ private:
             IdxRangeInterp polynom_subidx_range) const;
 };
 
-template <typename Execspace, class GridInterp, BCond BcMin, BCond BcMax>
-Idx<GridInterp> Lagrange<Execspace, GridInterp, BcMin, BcMax>::getclosest(CoordDimI value) const
+template <typename Execspace, class GridInterp, BCond BcMin, BCond BcMax, class Layout>
+Idx<GridInterp> Lagrange<Execspace, GridInterp, BcMin, BcMax, Layout>::getclosest(
+        CoordDimI value) const
 {
     assert(value >= m_left_bound && value <= m_right_bound);
     auto it = std::
@@ -90,8 +96,8 @@ Idx<GridInterp> Lagrange<Execspace, GridInterp, BcMin, BcMax>::getclosest(CoordD
             });
     return *it;
 }
-template <typename Execspace, class GridInterp, BCond BcMin, BCond BcMax>
-KOKKOS_INLINE_FUNCTION Idx<GridInterp> Lagrange<Execspace, GridInterp, BcMin, BcMax>::
+template <typename Execspace, class GridInterp, BCond BcMin, BCond BcMax, class Layout>
+KOKKOS_INLINE_FUNCTION Idx<GridInterp> Lagrange<Execspace, GridInterp, BcMin, BcMax, Layout>::
         getclosest_binsearch(CoordDimI x_interp) const
 {
     assert(x_interp >= m_left_bound && x_interp <= m_right_bound);
@@ -120,8 +126,8 @@ KOKKOS_INLINE_FUNCTION Idx<GridInterp> Lagrange<Execspace, GridInterp, BcMin, Bc
  *
  * @return The value of the basis at x_intercept
  */
-template <typename Execspace, class GridInterp, BCond BcMin, BCond BcMax>
-KOKKOS_INLINE_FUNCTION double Lagrange<Execspace, GridInterp, BcMin, BcMax>::compute_basis(
+template <typename Execspace, class GridInterp, BCond BcMin, BCond BcMax, class Layout>
+KOKKOS_INLINE_FUNCTION double Lagrange<Execspace, GridInterp, BcMin, BcMax, Layout>::compute_basis(
         CoordDimI x_interp,
         IdxInterp j,
         IdxRangeInterp polynom_subidx_range) const
@@ -137,8 +143,8 @@ KOKKOS_INLINE_FUNCTION double Lagrange<Execspace, GridInterp, BcMin, BcMax>::com
     return w;
 }
 
-template <typename Execspace, class GridInterp, BCond BcMin, BCond BcMax>
-KOKKOS_INLINE_FUNCTION double Lagrange<Execspace, GridInterp, BcMin, BcMax>::apply_bc(
+template <typename Execspace, class GridInterp, BCond BcMin, BCond BcMax, class Layout>
+KOKKOS_INLINE_FUNCTION double Lagrange<Execspace, GridInterp, BcMin, BcMax, Layout>::apply_bc(
         CoordDimI x_interp) const
 {
     CoordDimI bc_val = x_interp;
@@ -155,8 +161,8 @@ KOKKOS_INLINE_FUNCTION double Lagrange<Execspace, GridInterp, BcMin, BcMax>::app
     return evaluate_lagrange(bc_val);
 }
 
-template <typename Execspace, class GridInterp, BCond BcMin, BCond BcMax>
-KOKKOS_INLINE_FUNCTION double Lagrange<Execspace, GridInterp, BcMin, BcMax>::evaluate(
+template <typename Execspace, class GridInterp, BCond BcMin, BCond BcMax, class Layout>
+KOKKOS_INLINE_FUNCTION double Lagrange<Execspace, GridInterp, BcMin, BcMax, Layout>::evaluate(
         CoordDimI x_interp) const
 {
     if (x_interp < m_left_bound || m_right_bound < x_interp) {
@@ -166,9 +172,9 @@ KOKKOS_INLINE_FUNCTION double Lagrange<Execspace, GridInterp, BcMin, BcMax>::eva
     }
 }
 
-template <typename Execspace, class GridInterp, BCond BcMin, BCond BcMax>
-KOKKOS_INLINE_FUNCTION double Lagrange<Execspace, GridInterp, BcMin, BcMax>::evaluate_lagrange(
-        CoordDimI x_intern) const
+template <typename Execspace, class GridInterp, BCond BcMin, BCond BcMax, class Layout>
+KOKKOS_INLINE_FUNCTION double Lagrange<Execspace, GridInterp, BcMin, BcMax, Layout>::
+        evaluate_lagrange(CoordDimI x_intern) const
 {
     assert(x_intern >= m_left_bound && x_intern <= m_right_bound);
 

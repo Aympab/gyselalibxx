@@ -13,6 +13,8 @@
 #include <paraconf.h>
 #include <pdi.h>
 
+#include "Lagrange.hpp"
+#include "Lagrange_interpolator.hpp"
 #include "bsl_advection_vx.hpp"
 #include "bsl_advection_x.hpp"
 #include "chargedensitycalculator.hpp"
@@ -115,40 +117,79 @@ int main(int argc, char** argv)
     double const time_diag = PCpp_double(conf_gyselalibxx, ".Output.time_diag");
     int const nbstep_diag = int(time_diag / deltat);
 
-    // Create spline evaluator
-    ddc::PeriodicExtrapolationRule<X> bv_x_min;
-    ddc::PeriodicExtrapolationRule<X> bv_x_max;
-    SplineXEvaluator const spline_x_evaluator(bv_x_min, bv_x_max);
+    LagrangeInterpolator<
+            GridX,
+            BCond::DIRICHLET,
+            BCond::DIRICHLET,
+            GridVx,
+            GridVy,
+            GridX,
+            GridY> const lagrange_x_non_preallocatable_interpolator(3, IdxStepX(2));
+    PreallocatableLagrangeInterpolator<
+            GridX,
+            BCond::DIRICHLET,
+            BCond::DIRICHLET,
+            GridVx,
+            GridVy,
+            GridX,
+            GridY> const lagrange_x_interpolator(lagrange_x_non_preallocatable_interpolator);
 
-    PreallocatableSplineInterpolator const
-            spline_x_interpolator(builder_x, spline_x_evaluator, idxrange_vxvyxy_v2Dsplit);
+    LagrangeInterpolator<
+            GridY,
+            BCond::DIRICHLET,
+            BCond::DIRICHLET,
+            GridVx,
+            GridVy,
+            GridX,
+            GridY> const lagrange_y_non_preallocatable_interpolator(3, IdxStepY(2));
+    PreallocatableLagrangeInterpolator<
+            GridY,
+            BCond::DIRICHLET,
+            BCond::DIRICHLET,
+            GridVx,
+            GridVy,
+            GridX,
+            GridY> const lagrange_y_interpolator(lagrange_y_non_preallocatable_interpolator);
 
-    ddc::PeriodicExtrapolationRule<Y> bv_y_min;
-    ddc::PeriodicExtrapolationRule<Y> bv_y_max;
-    SplineYEvaluator const spline_y_evaluator(bv_y_min, bv_y_max);
+    LagrangeInterpolator<
+            GridVx,
+            BCond::DIRICHLET,
+            BCond::DIRICHLET,
+            GridX,
+            GridY,
+            GridVx,
+            GridVy> const lagrange_vx_non_preallocatable_interpolator(3, IdxStepVx(2));
+    PreallocatableLagrangeInterpolator<
+            GridVx,
+            BCond::DIRICHLET,
+            BCond::DIRICHLET,
+            GridX,
+            GridY,
+            GridVx,
+            GridVy> const lagrange_vx_interpolator(lagrange_vx_non_preallocatable_interpolator);
 
-    PreallocatableSplineInterpolator const
-            spline_y_interpolator(builder_y, spline_y_evaluator, idxrange_vxvyxy_v2Dsplit);
-
-    ddc::ConstantExtrapolationRule<Vx> bv_vx_min(ddc::coordinate(idxrange_vx.front()));
-    ddc::ConstantExtrapolationRule<Vx> bv_vx_max(ddc::coordinate(idxrange_vx.back()));
-    SplineVxEvaluator const spline_vx_evaluator(bv_vx_min, bv_vx_max);
-
-    PreallocatableSplineInterpolator const
-            spline_vx_interpolator(builder_vx, spline_vx_evaluator, idxrange_xyvxvy_x2Dsplit);
-
-    ddc::ConstantExtrapolationRule<Vy> bv_vy_min(ddc::coordinate(idxrange_vy.front()));
-    ddc::ConstantExtrapolationRule<Vy> bv_vy_max(ddc::coordinate(idxrange_vy.back()));
-    SplineVyEvaluator const spline_vy_evaluator(bv_vy_min, bv_vy_max);
-
-    PreallocatableSplineInterpolator const
-            spline_vy_interpolator(builder_vy, spline_vy_evaluator, idxrange_xyvxvy_x2Dsplit);
+    LagrangeInterpolator<
+            GridVy,
+            BCond::DIRICHLET,
+            BCond::DIRICHLET,
+            GridX,
+            GridY,
+            GridVx,
+            GridVy> const lagrange_vy_non_preallocatable_interpolator(3, IdxStepVy(2));
+    PreallocatableLagrangeInterpolator<
+            GridVy,
+            BCond::DIRICHLET,
+            BCond::DIRICHLET,
+            GridX,
+            GridY,
+            GridVx,
+            GridVy> const lagrange_vy_interpolator(lagrange_vy_non_preallocatable_interpolator);
 
     // Create advection operator
-    BslAdvectionSpatial<GeometryVxVyXY, GridX> const advection_x(spline_x_interpolator);
-    BslAdvectionSpatial<GeometryVxVyXY, GridY> const advection_y(spline_y_interpolator);
-    BslAdvectionVelocity<GeometryXYVxVy, GridVx> const advection_vx(spline_vx_interpolator);
-    BslAdvectionVelocity<GeometryXYVxVy, GridVy> const advection_vy(spline_vy_interpolator);
+    BslAdvectionSpatial<GeometryVxVyXY, GridX> const advection_x(lagrange_x_interpolator);
+    BslAdvectionSpatial<GeometryVxVyXY, GridY> const advection_y(lagrange_y_interpolator);
+    BslAdvectionVelocity<GeometryXYVxVy, GridVx> const advection_vx(lagrange_vx_interpolator);
+    BslAdvectionVelocity<GeometryXYVxVy, GridVy> const advection_vy(lagrange_vy_interpolator);
 
     MpiSplitVlasovSolver const
             vlasov(advection_x, advection_y, advection_vx, advection_vy, transpose);

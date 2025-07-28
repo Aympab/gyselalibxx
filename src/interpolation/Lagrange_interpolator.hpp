@@ -94,7 +94,12 @@ public:
                 Kokkos::DefaultExecutionSpace(),
                 batch_idx_range,
                 KOKKOS_LAMBDA(typename decltype(batch_idx_range)::discrete_element_type const i) {
-                    Lagrange<Kokkos::DefaultExecutionSpace, GridInterp, BcMin, BcMax>
+                    Lagrange<
+                            Kokkos::DefaultExecutionSpace,
+                            GridInterp,
+                            BcMin,
+                            BcMax,
+                            typename decltype(inout_data_tmp[i])::layout_type>
                             evaluator(deg, inout_data_tmp[i], interp_range, ghost);
                     for (Idx<GridInterp> j : interp_range) {
                         inout_data(i, j) = evaluator.evaluate(coordinates(i, j));
