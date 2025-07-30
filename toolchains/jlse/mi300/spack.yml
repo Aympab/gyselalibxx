@@ -1,0 +1,51 @@
+spack:
+  view: true
+
+  specs:
+    - cmake
+    - fftw ~mpi
+    - ginkgo~openmp+rocm amdgpu_target=gfx908
+    - googletest
+    - ninja
+    - paraconf
+    - pdi
+    - pdiplugin-decl-hdf5
+    - pdiplugin-mpi
+    - pdiplugin-set-value
+    - pdiplugin-trace
+    - openblas
+    - openmpi+rocm amdgpu_target=gfx908
+    - hip@6.3.2
+    - rocfft
+    - rocblas
+    - rocrand
+    - rocsparse
+
+  concretizer:
+    unify: true
+
+  compilers:
+    - compiler:
+        spec: gcc@=11.1.0
+        paths:
+          cc: /soft/compilers/gcc/11.1.0/x86_64-suse-linux/bin/gcc
+          cxx: /soft/compilers/gcc/11.1.0/x86_64-suse-linux/bin/g++
+          f77: /soft/compilers/gcc/11.1.0/x86_64-suse-linux/bin/gfortran
+          fc: /soft/compilers/gcc/11.1.0/x86_64-suse-linux/bin/gfortran
+        flags: {}
+        operating_system: opensuse15
+        target: x86_64
+        modules: []
+        environment: {}
+        extra_rpaths: []
+
+  repos:
+    - /home/ac.amillan/source/spack_pdi
+
+  packages:
+    hip:
+      modules:
+        - rocm/6.3.2
+      externals:
+        - spec: hip@6.3.2
+          prefix: /soft/compilers/rocm/rocm-6.3.2
