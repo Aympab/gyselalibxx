@@ -7,6 +7,9 @@
 #include "ddc_aliases.hpp"
 #include "iinterpolator.hpp"
 
+#include <iostream>
+#include <chrono>
+
 /**
  * @brief A class for interpolating a function using Lagrange polynomials.
  * It is designed to work with both uniform and non-uniform mesh, and have the advantage to be local.
@@ -90,6 +93,9 @@ public:
         auto inout_data_tmp = get_field(inout_data_tmp_alloc);
         auto batch_idx_range = ddc::remove_dims_of<GridInterp>(get_idx_range(inout_data));
         auto const interp_range = get_idx_range<GridInterp>(inout_data);
+
+        Kokkos::fence();
+        auto start = std::chrono::high_resolution_clock::now();
         ddc::parallel_for_each(
                 Kokkos::DefaultExecutionSpace(),
                 batch_idx_range,
@@ -105,6 +111,12 @@ public:
                         inout_data(i, j) = evaluator.evaluate(coordinates(i, j));
                     }
                 });
+
+        Kokkos::fence();
+        auto stop = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed_seconds = stop - start;
+        std::cout << typeid(GridInterp).name() << " ==== Kernel time: " << elapsed_seconds.count() << " seconds\n";
+        
         return inout_data;
     }
 };
